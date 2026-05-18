@@ -1,0 +1,82 @@
+{
+  "title": "SRE Microservices Overview",
+  "uid": "sre-overview",
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "10s",
+  "panels": [
+    {
+      "type": "timeseries",
+      "title": "Request rate",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total[1m])) by (endpoint)",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Error rate (5xx)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m]))",
+          "legendFormat": "error_ratio"
+        }
+      ],
+      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "P95 latency (seconds)",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
+      "targets": [
+        {
+          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[1m])) by (le, endpoint))",
+          "legendFormat": "{{endpoint}}"
+        }
+      ],
+      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Service uptime (up)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
+      "targets": [
+        {
+          "expr": "up{job=\"microservices\"}",
+          "legendFormat": "{{instance}}"
+        }
+      ],
+      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Container CPU %",
+      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
+      "targets": [
+        {
+          "expr": "rate(container_cpu_usage_seconds_total{name=~\".+\"}[1m]) * 100",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+    },
+    {
+      "type": "timeseries",
+      "title": "Container memory (MB)",
+      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
+      "targets": [
+        {
+          "expr": "container_memory_usage_bytes{name=~\".+\"} / 1024 / 1024",
+          "legendFormat": "{{name}}"
+        }
+      ],
+      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+    }
+  ]
+}
