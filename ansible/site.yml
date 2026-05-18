@@ -1,0 +1,52 @@
+---
+- name: Configure SRE microservices nodes
+  hosts: sre_nodes
+  become: true
+  vars:
+    project_root: "{{ playbook_dir }}/.."
+  tasks:
+    - name: Install Docker packages (Debian/Ubuntu)
+      ansible.builtin.apt:
+        name:
+          - docker.io
+          - docker-compose-plugin
+          - python3-pip
+        state: present
+        update_cache: true
+      when: ansible_os_family == "Debian"
+
+    - name: Ensure Docker service is running
+      ansible.builtin.service:
+        name: docker
+        state: started
+        enabled: true
+
+    - name: Copy application stack
+      ansible.builtin.synchronize:
+        src: "{{ project_root }}/"
+        dest: /opt/sre-shop/
+        delete: false
+        rsync_opts:
+          - "--exclude=.git"
+
+    - name: Deploy stack with Docker Compose
+      ansible.builtin.command:
+        cmd: docker compose up -d --build
+        chdir: /opt/sre-shop
+      register: compose_up
+      changed_when: "'Creating' in compose_up.stderr or 'Started' in compose_up.stderr"
+
+- name: Configure monitoring targets
+  hosts: monitoring
+  become: true
+  tasks:
+    - name: Verify Prometheus is reachable locally
+      ansible.builtin.uri:
+        url: "http://127.0.0.1:9090/-/healthy"
+        status_code: 200
+      register: prom_health
+      failed_when: false
+
+    - name: Report monitoring status
+      ansible.builtin.debug:
+        msg: "Prometheus healthy={{ prom_health.status == 200 }}"
