@@ -1,0 +1,93 @@
+# Docker Swarm: docker swarm init && docker stack deploy -c docker-stack.yml sre
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sre_shop
+      POSTGRES_USER: sre
+      POSTGRES_PASSWORD: sre_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    networks: [sre-net]
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  redis:
+    image: redis:7-alpine
+    networks: [sre-net]
+    deploy:
+      replicas: 1
+
+  auth-service:
+    image: sre/auth-service:local
+    networks: [sre-net]
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  product-service:
+    image: sre/product-service:local
+    networks: [sre-net]
+    deploy:
+      replicas: 2
+
+  order-service:
+    image: sre/order-service:local
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: sre_shop
+      POSTGRES_USER: sre
+      POSTGRES_PASSWORD: sre_password
+    networks: [sre-net]
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  payment-service:
+    image: sre/payment-service:local
+    networks: [sre-net]
+    deploy:
+      replicas: 2
+
+  notification-service:
+    image: sre/notification-service:local
+    environment:
+      REDIS_HOST: redis
+    networks: [sre-net]
+    deploy:
+      replicas: 2
+
+  user-profile-service:
+    image: sre/user-profile-service:local
+    networks: [sre-net]
+    deploy:
+      replicas: 2
+
+  api-gateway:
+    image: sre/api-gateway:local
+    networks: [sre-net]
+    ports:
+      - "8080:8080"
+    deploy:
+      replicas: 2
+
+  frontend:
+    image: sre/frontend:local
+    ports:
+      - "8088:80"
+    networks: [sre-net]
+    deploy:
+      replicas: 1
+
+volumes:
+  pgdata:
+
+networks:
+  sre-net:
+    driver: overlay
