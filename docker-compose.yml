@@ -1,0 +1,173 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: sre_shop
+      POSTGRES_USER: sre
+      POSTGRES_PASSWORD: sre_password
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sre -d sre_shop"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks: [sre-net]
+
+  redis:
+    image: redis:7-alpine
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+    networks: [sre-net]
+
+  auth-service:
+    build:
+      context: ./services
+      dockerfile: auth/Dockerfile
+    environment:
+      PORT: "8001"
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8001/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [sre-net]
+
+  product-service:
+    build:
+      context: ./services
+      dockerfile: product/Dockerfile
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8002/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [sre-net]
+
+  order-service:
+    build:
+      context: ./services
+      dockerfile: order/Dockerfile
+    environment:
+      POSTGRES_HOST: postgres
+      POSTGRES_DB: sre_shop
+      POSTGRES_USER: sre
+      POSTGRES_PASSWORD: sre_password
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8003/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    networks: [sre-net]
+
+  payment-service:
+    build:
+      context: ./services
+      dockerfile: payment/Dockerfile
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8004/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [sre-net]
+
+  notification-service:
+    build:
+      context: ./services
+      dockerfile: notification/Dockerfile
+    environment:
+      REDIS_HOST: redis
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8005/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [sre-net]
+
+  user-profile-service:
+    build:
+      context: ./services
+      dockerfile: user-profile/Dockerfile
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8006/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [sre-net]
+
+  api-gateway:
+    build:
+      context: ./services
+      dockerfile: api-gateway/Dockerfile
+    depends_on:
+      - auth-service
+      - product-service
+      - order-service
+      - payment-service
+      - notification-service
+      - user-profile-service
+    healthcheck:
+      test: ["CMD-SHELL", "python -c \"import urllib.request; urllib.request.urlopen('http://127.0.0.1:8080/health')\""]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks: [sre-net]
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "8088:80"
+    depends_on:
+      - api-gateway
+    networks: [sre-net]
+
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    privileged: true
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+    networks: [sre-net]
+
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    volumes:
+      - ./monitoring/prometheus/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ./monitoring/prometheus/alerts.yml:/etc/prometheus/alerts.yml:ro
+    ports:
+      - "9091:9090"
+    networks: [sre-net]
+
+  grafana:
+    image: grafana/grafana:11.1.0
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: admin
+      GF_USERS_ALLOW_SIGN_UP: "false"
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/var/lib/grafana/dashboards:ro
+    ports:
+      - "3001:3000"
+    depends_on:
+      - prometheus
+    networks: [sre-net]
+
+volumes:
+  pgdata:
+
+networks:
+  sre-net:
+    driver: bridge
