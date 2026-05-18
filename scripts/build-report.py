@@ -18,7 +18,7 @@ SCREENSHOTS = ROOT / "report" / "screenshots"
 OUTPUT = ROOT / "report" / "End_Term_SRE_Report.pdf"
 GIT_URL = os.environ.get(
     "GIT_REPO_URL",
-    "https://github.com/YOUR_USERNAME/AdvancedProgramming_Final-main",
+    "https://github.com/Tedra-ez/IntroductionSRE_End",
 )
 
 
