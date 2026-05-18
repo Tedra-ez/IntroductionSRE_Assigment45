@@ -1,0 +1,16 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: sre-config
+  namespace: sre-shop
+data:
+  POSTGRES_HOST: postgres
+  POSTGRES_DB: sre_shop
+  POSTGRES_USER: sre
+  REDIS_HOST: redis
+  AUTH_URL: http://auth-service:8001
+  PRODUCT_URL: http://product-service:8002
+  ORDER_URL: http://order-service:8003
+  PAYMENT_URL: http://payment-service:8004
+  NOTIFICATION_URL: http://notification-service:8005
+  USER_PROFILE_URL: http://user-profile-service:8006
