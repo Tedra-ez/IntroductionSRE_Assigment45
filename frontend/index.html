@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SRE Microservices Shop</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; padding: 0 1rem; }
+    button { margin: 0.25rem 0.5rem 0.25rem 0; }
+    pre { background: #f4f4f4; padding: 1rem; overflow: auto; }
+  </style>
+</head>
+<body>
+  <h1>SRE Microservices Demo</h1>
+  <p>Frontend (Nginx) → API Gateway → 6 microservices</p>
+  <button onclick="call('/api/v1/products')">List products</button>
+  <button onclick="createOrder()">Create order</button>
+  <button onclick="call('/api/v1/orders')">List orders</button>
+  <pre id="out">Click a button to call the API.</pre>
+  <script>
+    const out = document.getElementById('out');
+    async function call(path, opts) {
+      const res = await fetch(path, opts);
+      const text = await res.text();
+      out.textContent = res.status + ' ' + res.statusText + '\n' + text;
+    }
+    function createOrder() {
+      call('/api/v1/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ user_id: 'demo-user', product_id: 1, quantity: 1 })
+      });
+    }
+  </script>
+</body>
+</html>
