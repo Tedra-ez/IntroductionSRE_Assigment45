@@ -3,9 +3,9 @@ groups:
     rules:
       - alert: HighErrorRate
         expr: |
-          sum(rate(http_requests_total{status=~"5.."}[5m]))
+          sum(rate(http_requests_total{status=~"[45].."}[5m]))
           /
-          sum(rate(http_requests_total[5m])) > 0.01
+          clamp_min(sum(rate(http_requests_total[5m])), 0.001) > 0.01
         for: 2m
         labels:
           severity: critical

@@ -7,7 +7,15 @@ Distributed shop demonstrating SRE practices: **6 microservices**, Docker Compos
 ```bash
 docker compose up -d --build
 # Frontend http://localhost:8088  |  Prometheus http://localhost:9091  |  Grafana http://localhost:3001 (admin/admin)
-./scripts/generate-traffic.sh
+./scripts/sustain-load.sh   # 3 min traffic for dashboards
+pytest tests/ -v            # integration tests
+```
+
+## Full PDF report (recommended before submission)
+
+```bash
+bash scripts/prepare-report.sh
+# Output: report/End_Term_SRE_Report.pdf (cover page, tables, tests, screenshots)
 ```
 
 ## Layout

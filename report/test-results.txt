@@ -1,0 +1,17 @@
+============================= test session starts ==============================
+platform darwin -- Python 3.13.9, pytest-8.4.2, pluggy-1.5.0 -- /opt/anaconda3/bin/python
+cachedir: .pytest_cache
+rootdir: /Users/zhanibek/Downloads/AdvancedProgramming_Final-main
+plugins: anyio-4.10.0
+collecting ... collected 8 items
+
+tests/test_integration.py::test_frontend_reachable PASSED                [ 12%]
+tests/test_integration.py::test_products_list PASSED                     [ 25%]
+tests/test_integration.py::test_create_order_flow PASSED                 [ 37%]
+tests/test_integration.py::test_payment_simulation PASSED                [ 50%]
+tests/test_integration.py::test_notification_queue PASSED                [ 62%]
+tests/test_integration.py::test_user_profile PASSED                      [ 75%]
+tests/test_integration.py::test_login PASSED                             [ 87%]
+tests/test_integration.py::test_orders_list PASSED                       [100%]
+
+============================== 8 passed in 0.40s ===============================

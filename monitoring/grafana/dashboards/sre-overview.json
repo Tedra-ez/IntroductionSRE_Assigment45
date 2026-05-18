@@ -3,80 +3,169 @@
   "uid": "sre-overview",
   "timezone": "browser",
   "schemaVersion": 39,
-  "version": 1,
-  "refresh": "10s",
+  "version": 2,
+  "refresh": "5s",
+  "time": { "from": "now-15m", "to": "now" },
   "panels": [
     {
-      "type": "timeseries",
-      "title": "Request rate",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 0},
-      "targets": [
-        {
-          "expr": "sum(rate(http_requests_total[1m])) by (endpoint)",
-          "legendFormat": "{{endpoint}}"
+      "type": "stat",
+      "title": "Request rate (req/s)",
+      "gridPos": { "h": 4, "w": 6, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "sum(rate(http_requests_total[1m]))", "legendFormat": "rps" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "reqps",
+          "decimals": 2,
+          "color": { "mode": "thresholds" },
+          "thresholds": { "mode": "absolute", "steps": [{ "color": "green", "value": null }] }
         }
-      ],
-      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Availability (targets up)",
+      "gridPos": { "h": 4, "w": 6, "x": 6, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "avg(up{job=\"microservices\"}) * 100", "legendFormat": "avail" }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 1,
+          "min": 0,
+          "max": 100,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "red", "value": null },
+              { "color": "yellow", "value": 95 },
+              { "color": "green", "value": 99 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "Error ratio (4xx+5xx)",
+      "gridPos": { "h": 4, "w": 6, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "100 * sum(rate(http_requests_total{status=~\"[45]..\"}[1m])) / clamp_min(sum(rate(http_requests_total[1m])), 0.001)",
+        "legendFormat": "errors"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "decimals": 2,
+          "noValue": "0",
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.5 },
+              { "color": "red", "value": 1 }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "type": "stat",
+      "title": "P95 latency",
+      "gridPos": { "h": 4, "w": 6, "x": 18, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[1m])) by (le))",
+        "legendFormat": "p95"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "s",
+          "decimals": 3,
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [
+              { "color": "green", "value": null },
+              { "color": "yellow", "value": 0.15 },
+              { "color": "red", "value": 0.2 }
+            ]
+          }
+        }
+      }
     },
     {
       "type": "timeseries",
-      "title": "Error rate (5xx)",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 0},
-      "targets": [
-        {
-          "expr": "sum(rate(http_requests_total{status=~\"5..\"}[1m])) / sum(rate(http_requests_total[1m]))",
-          "legendFormat": "error_ratio"
-        }
-      ],
-      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+      "title": "Request rate by endpoint",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "sum(rate(http_requests_total[1m])) by (endpoint)",
+        "legendFormat": "{{endpoint}}"
+      }],
+      "fieldConfig": { "defaults": { "custom": { "drawStyle": "line", "fillOpacity": 15 } } }
     },
     {
       "type": "timeseries",
-      "title": "P95 latency (seconds)",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 8},
-      "targets": [
-        {
-          "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[1m])) by (le, endpoint))",
-          "legendFormat": "{{endpoint}}"
+      "title": "Error ratio % (SLO <= 1%)",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 4 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "100 * sum(rate(http_requests_total{status=~\"[45]..\"}[1m])) / clamp_min(sum(rate(http_requests_total[1m])), 0.001)",
+        "legendFormat": "error %"
+      }],
+      "fieldConfig": {
+        "defaults": {
+          "unit": "percent",
+          "noValue": "0",
+          "custom": { "drawStyle": "line", "fillOpacity": 20 },
+          "thresholds": {
+            "mode": "absolute",
+            "steps": [{ "color": "green", "value": null }, { "color": "red", "value": 1 }]
+          }
         }
-      ],
-      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+      }
     },
     {
       "type": "timeseries",
-      "title": "Service uptime (up)",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 8},
-      "targets": [
-        {
-          "expr": "up{job=\"microservices\"}",
-          "legendFormat": "{{instance}}"
-        }
-      ],
-      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+      "title": "P95 latency by endpoint (SLO <= 200ms)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "histogram_quantile(0.95, sum(rate(http_request_duration_seconds_bucket[1m])) by (le, endpoint))",
+        "legendFormat": "{{endpoint}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "s", "custom": { "drawStyle": "line" } } }
     },
     {
       "type": "timeseries",
-      "title": "Container CPU %",
-      "gridPos": {"h": 8, "w": 12, "x": 0, "y": 16},
-      "targets": [
-        {
-          "expr": "rate(container_cpu_usage_seconds_total{name=~\".+\"}[1m]) * 100",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+      "title": "Service uptime",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 12 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{ "expr": "up{job=\"microservices\"}", "legendFormat": "{{instance}}" }],
+      "fieldConfig": { "defaults": { "min": 0, "max": 1, "unit": "none" } }
     },
     {
       "type": "timeseries",
-      "title": "Container memory (MB)",
-      "gridPos": {"h": 8, "w": 12, "x": 12, "y": 16},
-      "targets": [
-        {
-          "expr": "container_memory_usage_bytes{name=~\".+\"} / 1024 / 1024",
-          "legendFormat": "{{name}}"
-        }
-      ],
-      "datasource": {"type": "prometheus", "uid": "Prometheus"}
+      "title": "Container CPU (compose services)",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "sum by (container_label_com_docker_compose_service) (rate(container_cpu_usage_seconds_total{container_label_com_docker_compose_service!=\"\"}[1m])) * 100",
+        "legendFormat": "{{container_label_com_docker_compose_service}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "percent", "custom": { "drawStyle": "line" } } }
+    },
+    {
+      "type": "timeseries",
+      "title": "Container memory MB",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 20 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [{
+        "expr": "sum by (container_label_com_docker_compose_service) (container_memory_usage_bytes{container_label_com_docker_compose_service!=\"\"}) / 1024 / 1024",
+        "legendFormat": "{{container_label_com_docker_compose_service}}"
+      }],
+      "fieldConfig": { "defaults": { "unit": "decmbytes", "custom": { "drawStyle": "line" } } }
     }
   ]
 }
