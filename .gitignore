@@ -1,0 +1,11 @@
+__pycache__/
+*.pyc
+.env
+.DS_Store
+.terraform/
+*.tfstate
+*.tfstate.*
+.idea/
+.vscode/
+report/screenshots/*.png
+!report/screenshots/.gitkeep
